@@ -16,8 +16,26 @@ def fHttpTest(sProtocol, sInFqdn, sPort, aStatus):
             sys.stdout.write (sHttpUrl + "\n")
         else:
             for sStatus in aStatus:
-                if str(rHttp.status_code) == sStatus:
-                    sys.stdout.write (sHttpUrl + "\n")
+                sStatus = sStatus.lower()
+                if re.match(r"^[1-5][0-9][0-9]$", sStatus):
+                    if str(rHttp.status_code) == sStatus:
+                        sys.stdout.write (sHttpUrl + "\n")
+                elif sStatus == "info" or sStatus == "success" or sStatus == "redirect" or sStatus == "client-error" or sStatus == "server-error":
+                    #print ("test")
+                    iHttpStatus = int(rHttp.status_code)
+                    if sStatus == "info" and iHttpStatus >= 100 and iHttpStatus <200:
+                        sys.stdout.write (sHttpUrl + "\n")
+                    if sStatus == "success" and iHttpStatus >= 200 and iHttpStatus <300:
+                        sys.stdout.write (sHttpUrl + "\n")
+                    if sStatus == "redirect" and iHttpStatus >= 300 and iHttpStatus <400:
+                        sys.stdout.write (sHttpUrl + "\n")
+                    if sStatus == "client-error" and iHttpStatus >= 400 and iHttpStatus <500:
+                        sys.stdout.write (sHttpUrl + "\n")
+                    if sStatus == "server-error" and iHttpStatus >= 500 and iHttpStatus <600:
+                        sys.stdout.write (sHttpUrl + "\n")
+                else:
+                    print ("Invalid HTTP status code(s)")
+                    sys.exit()
     except requests.exceptions.RequestException:
         pass
 
