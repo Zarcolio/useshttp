@@ -2,16 +2,19 @@
 # -*- coding: utf-8 -*-
 
 import sys
-#from tldextract import extract
 import signal
 import argparse
 import re
 import requests
 
-def fHttpTest(sProtocol, sInFqdn, sPort, aStatus):
-    sHttpUrl = sProtocol + "://" + sInFqdn + ":" + sPort
+def fHttpTest(sProtocol, sInFqdn, sPort, aStatus, sTimeout):
+    if (sProtocol == "http" and sPort == "80") or (sProtocol == "https" and sPort == "443"):
+        sHttpUrl = sProtocol + "://" + sInFqdn
+    else:
+        sHttpUrl = sProtocol + "://" + sInFqdn + ":" + sPort
+        
     try:
-        rHttp = requests.get(sHttpUrl)
+        rHttp = requests.get(sHttpUrl, timeout=int(sTimeout))
         if args.status is None:
             sys.stdout.write (sHttpUrl + "\n")
         else:
@@ -38,9 +41,7 @@ def fHttpTest(sProtocol, sInFqdn, sPort, aStatus):
                     sys.exit()
     except requests.exceptions.RequestException:
         pass
-
-    
-
+ 
 def signal_handler(sig, frame):
         print("\nCtrl-C detected, exiting...\n")
         sys.exit(0)
@@ -51,7 +52,8 @@ sRegex = r'((?!-)[-A-Z\d]{1,62}(?<!-)\.)+[A-Z]{1,62}'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--ports", help="List of ports, separated by commas. Don't use spaces.")
-parser.add_argument("-s", "--status", help="List of HTTP status codes, separated by commas. Don't use spaces.")
+parser.add_argument("-s", "--status", help="List of HTTP status codes or classes: info, success, client-error or server-error. Separated by commas. Status codes and classes may be combined. Don't use spaces.")
+parser.add_argument("-t", "--timeout", help="Time-out of the GET request in seconds")
 args = parser.parse_args()
 
 
@@ -59,6 +61,11 @@ if args.ports is None:
     sPortArg = "80,443"
 else:
     sPortArg = args.ports
+
+if args.timeout is None:
+    sTimeoutArg = "1"
+else:
+    sTimeoutArg = args.timeout
 
 aPorts = sPortArg.split(",")
 
@@ -72,7 +79,7 @@ for sInFqdn in sys.stdin:
     found = re.match(sRegex, sInFqdn,re.IGNORECASE)
     if found:
         for sPort in aPorts:
-            fHttpTest("https", sInFqdn, sPort, aStatus)
-            fHttpTest("http", sInFqdn, sPort, aStatus)
+            fHttpTest("https", sInFqdn, sPort, aStatus, sTimeoutArg)
+            fHttpTest("http", sInFqdn, sPort, aStatus, sTimeoutArg)
     else:
         print (sInFqdn + " isn't a valid FQDN")
