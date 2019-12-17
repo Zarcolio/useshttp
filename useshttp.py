@@ -17,6 +17,7 @@ def fHttpTest(sProtocol, sInFqdn, sPort, aStatus, sTimeout):
         rHttp = requests.get(sHttpUrl, timeout=int(sTimeout))
         if args.status is None:
             sys.stdout.write (sHttpUrl + "\n")
+            return True
         else:
             for sStatus in aStatus:
                 sStatus = sStatus.lower()
@@ -36,6 +37,7 @@ def fHttpTest(sProtocol, sInFqdn, sPort, aStatus, sTimeout):
                         sys.stdout.write (sHttpUrl + "\n")
                     if sStatus == "server-error" and iHttpStatus >= 500 and iHttpStatus <600:
                         sys.stdout.write (sHttpUrl + "\n")
+                    return True
                 else:
                     print ("Invalid HTTP status code(s)")
                     sys.exit()
@@ -48,17 +50,16 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-sRegex = r'((?!-)[-A-Z\d]{1,62}(?<!-)\.)+[A-Z]{1,62}'
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--ports", help="List of ports, separated by commas. Don't use spaces.")
-parser.add_argument("-s", "--status", help="List of HTTP status codes or classes: info, success, client-error or server-error. Separated by commas. Status codes and classes may be combined. Don't use spaces.")
-parser.add_argument("-t", "--timeout", help="Time-out of the GET request in seconds")
+parser.add_argument("-s", "--status", help="List of HTTP status codes or classes: info, success, client-error or server-error, separated by commas. Status codes and classes may be combined. Don't use spaces.")
+parser.add_argument("-t", "--timeout", help="Time-out of the GET request in seconds.")
+parser.add_argument("-i", "--ignorehttp", help="Ignore HTTP if HTTPS has been found. Combine this option with -p 443 if no other ports are tested to speed up the test.")
 args = parser.parse_args()
 
 
 if args.ports is None:
-    sPortArg = "80,443"
+    sPortArg = "443,80"
 else:
     sPortArg = args.ports
 
@@ -76,10 +77,7 @@ else:
 
 for sInFqdn in sys.stdin:
     sInFqdn = sInFqdn.strip()
-    found = re.match(sRegex, sInFqdn,re.IGNORECASE)
-    if found:
-        for sPort in aPorts:
-            fHttpTest("https", sInFqdn, sPort, aStatus, sTimeoutArg)
-            fHttpTest("http", sInFqdn, sPort, aStatus, sTimeoutArg)
-    else:
-        print (sInFqdn + " isn't a valid FQDN")
+    for sPort in aPorts:
+        # Ignore HTTP test when -ih is given:
+        if (fHttpTest("https", sInFqdn, sPort, aStatus, sTimeoutArg) is True) or (args.ignorehttp is None):
+        	fHttpTest("http", sInFqdn, sPort, aStatus, sTimeoutArg)
