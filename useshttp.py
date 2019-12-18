@@ -45,8 +45,8 @@ def fHttpTest(sProtocol, sInFqdn, sPort, aStatus, sTimeout):
         pass
  
 def signal_handler(sig, frame):
-        print("\nCtrl-C detected, exiting...\n")
-        sys.exit(0)
+	print("\nCtrl-C detected, quitting...\n")
+	sys.exit(1)
 
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -54,7 +54,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--ports", help="List of ports, separated by commas. Don't use spaces.")
 parser.add_argument("-s", "--status", help="List of HTTP status codes or classes: info, success, client-error or server-error, separated by commas. Status codes and classes may be combined. Don't use spaces.")
 parser.add_argument("-t", "--timeout", help="Time-out of the GET request in seconds.")
-parser.add_argument("-i", "--ignorehttp", help="Ignore HTTP if HTTPS has been found. Combine this option with -p 443 if no other ports are tested to speed up the test.")
+parser.add_argument("-x", "--https", help="Use only HTTP or HTTP, not both.")
 args = parser.parse_args()
 
 
@@ -75,9 +75,20 @@ if args.status is not None:
 else:
     aStatus = []
 
+if args.https:
+	sHttps = args.https.lower()
+else:
+	sHttps = None
+
 for sInFqdn in sys.stdin:
     sInFqdn = sInFqdn.strip()
     for sPort in aPorts:
-        # Ignore HTTP test when -ih is given:
-        if (fHttpTest("https", sInFqdn, sPort, aStatus, sTimeoutArg) is True) or (args.ignorehttp is None):
+        if (sHttps == "https") or (sHttps is None): 
+        	fHttpTest("https", sInFqdn, sPort, aStatus, sTimeoutArg)
+        if (sHttps == "http") or (sHttps is None): 
         	fHttpTest("http", sInFqdn, sPort, aStatus, sTimeoutArg)
+        if (sHttps != "http") and (sHttps != "https") and (sHttps is not None):
+        	print("Invalid protocol specification...")
+        	sys.exit(1) 
+
+   
